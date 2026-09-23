@@ -11,15 +11,12 @@ import { ThemeToggle } from '../components/theme-toggle';
 import '../../styles/dashboard.css';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
-import { Bot, Book } from 'lucide-react';
-import { Pencil } from "lucide-react"; // add this import
-import { 
-  Home,         // for Dashboard
-  FileText,     // for Assessment Lists (like a note or list)
-  MessageSquare, // for AI Chat
-  User,        // for Meditation (lotus flower icon)
-  BookOpen,     // for Personal Diary
-} from 'lucide-react';
+import { Bot, Book, Home, FileText, MessageSquare, User, Pencil, Music, Flower2 } from 'lucide-react';
+import { loadMeditationStats, useMeditationStatsUpdater } from '@/lib/meditation/sessionStorage';
+import type { MeditationStats } from '@/lib/meditation/types';
+import { MeditationStatsCard } from './MeditationStatsCard';
+import { WellnessInsights } from './WellnessInsights';
+import { trackEvent } from '@/lib/activityTracker';
 
 
 // Define interface for assessment data
@@ -30,14 +27,84 @@ interface Assessment {
   created_at?: string;
 }
 
-function EditableTasksCard() {
-  const [tasks, setTasks] = useState([
-    { id: 1, text: '60s breathing', completed: false },
-    { id: 2, text: 'Drink a glass of water', completed: false },
-    { id: 3, text: '5-minute walk', completed: false },
+interface WellnessTask {
+  id: string;
+  title: string;
+  description: string;
+  type: 'meditation' | 'journal' | 'assessment' | 'resources' | 'custom';
+  durationMinutes?: number;
+  status: 'available' | 'in_progress' | 'completed';
+  completed: boolean;
+  externalLink?: string;
+}
+
+interface CoachPlan {
+  text: string;
+  tasks: WellnessTask[];
+}
+
+interface TaskRow {
+  id: string | number;
+  text: string;
+  completed: boolean;
+}
+
+function EditableTasksCard({
+  generatedTasks,
+  onTaskExecute,
+  onTasksChange,
+}: {
+  generatedTasks: WellnessTask[];
+  onTaskExecute: (task: WellnessTask) => void;
+  onTasksChange: (tasks: WellnessTask[]) => void;
+}) {
+  const [tasks, setTasks] = useState<TaskRow[]>([
+    // { id: 1, text: '60s breathing', completed: false },
+    // { id: 2, text: 'Drink a glass of water', completed: false },
+    // { id: 3, text: '5-minute walk', completed: false },
   ]);
-  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const syncTasks = (nextTasks: TaskRow[]) => {
+    setTasks(nextTasks);
+    const persisted = nextTasks.map((task) => {
+      const match = generatedTasks.find((generatedTask) => String(generatedTask.id) === String(task.id));
+      return {
+        ...(match ?? {
+          id: String(task.id),
+          title: task.text,
+          description: task.text,
+          type: 'custom' as const,
+          status: 'available',
+          completed: task.completed,
+        }),
+        id: String(task.id),
+        title: task.text || match?.title || 'Wellness task',
+        description: match?.description || task.text,
+        type: match?.type || 'custom',
+        durationMinutes: match?.durationMinutes,
+        status: match?.status || 'available',
+        completed: task.completed,
+        externalLink: match?.externalLink,
+      };
+    });
+
+    onTasksChange(persisted);
+  };
+  const [editingId, setEditingId] = useState<string | number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (generatedTasks.length === 0) return;
+
+    setTasks((currentTasks) => [
+      ...currentTasks.filter((task) => !generatedTasks.some((generatedTask) => generatedTask.id === String(task.id))),
+      ...generatedTasks.map((task) => ({
+        id: task.id,
+        text: task.durationMinutes ? `${task.title} (${task.durationMinutes} min)` : task.title,
+        completed: task.completed,
+      })),
+    ]);
+  }, [generatedTasks]);
 
   useEffect(() => {
     if (editingId !== null && inputRef.current) {
@@ -46,36 +113,45 @@ function EditableTasksCard() {
     }
   }, [editingId]);
 
-  const toggleComplete = (id: number) => {
-    setTasks((prev) =>
-      prev.map((task) =>
+  const toggleComplete = (id: string | number) => {
+    setTasks((prev) => {
+      const task = prev.find((item) => item.id === id);
+      const nextTasks = prev.map((task) =>
         task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    );
+      );
+      if (task && !task.completed) trackEvent('task_completed', { task: task.text });
+      syncTasks(nextTasks);
+      return nextTasks;
+    });
   };
 
-  const startEditing = (id: number) => setEditingId(id);
+  const startEditing = (id: string | number) => setEditingId(id);
 
-  const saveTaskText = (id: number, text: string) => {
-    setTasks((prev) =>
-      prev.map((task) =>
+  const saveTaskText = (id: string | number, text: string) => {
+    setTasks((prev) => {
+      const nextTasks = prev.map((task) =>
         task.id === id ? { ...task, text: text.trim() || task.text } : task
-      )
-    );
+      );
+      syncTasks(nextTasks);
+      return nextTasks;
+    });
     setEditingId(null);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, id: number) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, id: string | number) => {
     if (e.key === 'Enter') {
       e.currentTarget.blur();
     }
   };
 
-  const clearAll = () => setTasks([]);
+  const clearAll = () => {
+    syncTasks([]);
+  };
 
   const addTask = () => {
-    const newId = tasks.length ? Math.max(...tasks.map((t) => t.id)) + 1 : 1;
-    setTasks([...tasks, { id: newId, text: 'New task', completed: false }]);
+    const newId = `task-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    const nextTasks = [...tasks, { id: newId, text: 'New task', completed: false }];
+    syncTasks(nextTasks);
     setEditingId(newId);
   };
 
@@ -144,15 +220,29 @@ function EditableTasksCard() {
                   style={{ flex: 1 }}
                 />
               ) : (
-                <span
-                  onClick={() => startEditing(id)}
-                  style={{
-                    flex: 1,
-                    textDecoration: completed ? 'line-through' : 'none',
-                  }}
-                >
-                  {text}
-                </span>
+                <>
+                  <span
+                    onClick={() => startEditing(id)}
+                    style={{
+                      flex: 1,
+                      textDecoration: completed ? 'line-through' : 'none',
+                    }}
+                  >
+                    {text}
+                  </span>
+                  {typeof id === 'string' && !completed && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        const task = generatedTasks.find((generatedTask) => generatedTask.id === id);
+                        if (task) onTaskExecute(task);
+                      }}
+                    >
+                      {generatedTasks.find((generatedTask) => generatedTask.id === id)?.externalLink ? 'Open' : 'Start'}
+                    </Button>
+                  )}
+                </>
               )}
             </li>
           ))}
@@ -183,12 +273,189 @@ function EditableTasksCard() {
   );
 }
 
+function DashboardCoach({
+  initialPlan,
+  onPlanCreated,
+}: {
+  initialPlan: CoachPlan | null;
+  onPlanCreated: (plan: CoachPlan) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [input, setInput] = useState('');
+  const [plan, setPlan] = useState<CoachPlan | null>(initialPlan);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPlan(initialPlan);
+  }, [initialPlan]);
+
+  const askCoach = async () => {
+    const message = input.trim();
+    if (!message || loading) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/genai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          promptType: 'orchestrator',
+          messages: [{ role: 'user', content: message }],
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || 'The wellness coach could not respond');
+
+      const nextPlan: CoachPlan = { text: data.text, tasks: data.tasks || [] };
+      setPlan(nextPlan);
+      onPlanCreated(nextPlan);
+      setInput('');
+    } catch (coachError) {
+      console.error('Dashboard orchestrator error:', coachError);
+      setError('The coach could not create a plan right now. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section className={`dashboard-coach ${expanded ? 'expanded' : ''}`}>
+      <button
+        type="button"
+        className="dashboard-coach-orb"
+        onClick={() => setExpanded((current) => !current)}
+        aria-expanded={expanded}
+        aria-label={expanded ? 'Collapse wellness coach' : 'Open wellness coach'}
+      >
+        <Bot size={30} />
+      </button>
+      <div className="dashboard-coach-heading">
+        <span className="dashboard-coach-kicker">Your wellness guide</span>
+        <strong>Talk through what is weighing on you</strong>
+      </div>
+
+      {expanded && (
+        <div className="dashboard-coach-panel">
+          <p className="dashboard-coach-hint">Share what is happening. The coach will suggest a few small next steps.</p>
+          <div className="dashboard-coach-input-row">
+            <input
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') askCoach();
+              }}
+              placeholder="I am feeling stressed about..."
+              disabled={loading}
+              aria-label="Tell the wellness coach what is happening"
+            />
+            <Button onClick={askCoach} disabled={!input.trim() || loading}>
+              {loading ? 'Thinking...' : 'Plan'}
+            </Button>
+          </div>
+          {error && <p className="dashboard-coach-error" role="alert">{error}</p>}
+          {plan && (
+            <div className="dashboard-coach-result">
+              <p>{plan.text}</p>
+              {plan.tasks.length > 0 && (
+                <div className="dashboard-coach-task-preview">
+                  {plan.tasks.map((task) => (
+                    <div key={task.id} className="dashboard-coach-task-preview-item">
+                      <span>{task.title}</span>
+                      <small>{task.type}{task.externalLink ? ' • external' : ''}</small>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useUser();
   const router = useRouter();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeModule, setActiveModule] = useState<string>('Dashboard');
+  const [coachPlan, setCoachPlan] = useState<CoachPlan | null>(null);
+  const [coachTasks, setCoachTasks] = useState<WellnessTask[]>([]);
+  const [meditationStats, setMeditationStats] = useState<MeditationStats>({
+    sessionsCompleted: 0,
+    averagePostureScore: 0,
+    lastDuration: 0,
+    lastPostureScore: 0,
+    streakDays: 0,
+    badges: [] as string[],
+    totalMinutes: 0,
+  });
+  const statsUpdater = useMeditationStatsUpdater(user?.id);
+  useEffect(() => {
+    trackEvent('page_visit', { page: 'dashboard' });
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    try {
+      const storedPlan = localStorage.getItem(`dashboard_coach_plan_${user.id}`);
+      if (!storedPlan) return;
+
+      const parsedPlan = JSON.parse(storedPlan) as CoachPlan;
+      if (parsedPlan && Array.isArray(parsedPlan.tasks)) {
+        setCoachPlan(parsedPlan);
+        setCoachTasks(parsedPlan.tasks);
+      }
+    } catch (error) {
+      console.warn('Unable to restore saved wellness plan:', error);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !coachPlan) return;
+    localStorage.setItem(`dashboard_coach_plan_${user.id}`, JSON.stringify(coachPlan));
+  }, [coachPlan, user]);
+
+  const handleTasksChange = (tasks: WellnessTask[]) => {
+    setCoachTasks(tasks);
+    setCoachPlan((currentPlan) => ({
+      text: currentPlan?.text || 'Your saved wellness steps are ready.',
+      tasks,
+    }));
+  };
+
+  const executeTask = (task: WellnessTask) => {
+    if (task.externalLink) {
+      window.open(task.externalLink, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    if (task.type === 'meditation') {
+      const durationSeconds = (task.durationMinutes || 5) * 60;
+      router.push(`/meditation?duration=${durationSeconds}&autostart=true`);
+      return;
+    }
+
+    if (task.type === 'journal') {
+      const prompt = task.description || task.title;
+      router.push(`/PrivateDiary?prompt=${encodeURIComponent(prompt)}`);
+      return;
+    }
+
+    if (task.type === 'assessment') {
+      router.push('/assessmentlist');
+      return;
+    }
+
+    if (task.type === 'resources') {
+      router.push('/resources');
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -201,8 +468,15 @@ export default function DashboardPage() {
       }));
 
       setAssessments(parsed);
+      setMeditationStats(loadMeditationStats(user.id));
+    } else {
+      setMeditationStats(loadMeditationStats());
     }
   }, [user]);
+
+  useEffect(() => {
+    setMeditationStats(statsUpdater);
+  }, [statsUpdater]);
 
   const lastAssessment = assessments[assessments.length - 1];
 
@@ -210,9 +484,11 @@ const modules = [
   { id: 'Dashboard', icon: <Home size={20} />, href: '/' },
   { id: 'Assessment Lists', icon: <FileText size={20} />, href: '/assessmentlist' },
   { id: 'AI Chat', icon: <MessageSquare size={20} />, href: '/ai' },
-  { id: 'Meditation', icon: <User size={20} />, href: '/meditation' },
+  { id: 'Meditation', icon: <Flower2 size={20} />, href: '/meditation' },
   { id: 'Personal Diary', icon: <Pencil size={20} />, href: '/PrivateDiary' },
   { id: 'Resources', icon: <Book size={20} />, href: '/resources' },
+  { id: 'Relaxing Sounds', icon: <Music size={20} />, href: '/relaxation' },
+  { id: 'Profile', icon: <User size={20} />, href: '/profile' },
 ];
 
   const handleModuleClick = (m: { id: string; href?: string }) => {
@@ -279,6 +555,7 @@ const modules = [
           </div>
         </header>
 
+        <WellnessInsights userId={user?.id} />
         <section className="ya-grid">
           <motion.section
             layout
@@ -329,46 +606,19 @@ const modules = [
 
           <motion.section
             layout
-            className="ya-card chat-card"
+            className="ya-card chat-card dashboard-coach-card"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.05 }}
           >
-            <Card className="max-w-md mx-auto text-center p-4">
-              {/* Heading */}
-              <h2 className="text-2xl font-bold mb-2">You Matter Chatbot</h2>
-
-              {/* Logo */}
-              <center>
-                <Bot
-                  width={64}
-                  height={100}
-                  className="avatar-icon" />
-              </center>
-
-              {/* Start Chat Button */}
-              <Button
-                className="mb-4 w-full"
-                size="lg"
-                onClick={() => window.location.assign('/ai')}
-              >
-                Start Chat
-              </Button>
-
-              {/* Quick Prompts */}
-              <p className="text-sm text-muted-foreground mb-2">Try quick prompts:</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {["Breathing Techniques", "Coping Tips", "7-day Plan for Stress Relief"].map((prompt) => (
-                  <Button
-                    key={prompt}
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => router.push(`/ai?q=${encodeURIComponent(prompt)}`)}
-                  >{prompt}
-                  </Button>
-                ))}
-              </div>
-            </Card>
+            <DashboardCoach
+              initialPlan={coachPlan}
+              onPlanCreated={(plan) => {
+                setCoachPlan(plan);
+                setCoachTasks(plan.tasks);
+                trackEvent('coach_plan_created', { taskCount: plan.tasks.length });
+              }}
+            />
           </motion.section>
 
           <motion.section
@@ -378,36 +628,7 @@ const modules = [
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.05 }}
           >
-            <Card className="max-w-md mx-auto text-center p-4">
-              {/* Heading */}
-              <h2 className="text-2xl font-bold mb-2">Meditation</h2>
-
-              {/* Lottie / Animation Placeholder */}
-              <div
-                className="lottie-placeholder mb-4"
-                role="img"
-                aria-label="Breathing animation placeholder"
-              >
-
-                <div className="breath-ring" />
-                <br />
-                <div className="breath-text">Breathe in... out</div>
-              </div>
-
-              {/* Description */}
-              <p className="text-sm text-muted-foreground mb-4">
-                Practice your meditation now with deep breathing and mindful focus.
-              </p>
-
-              {/* Start Meditation Button */}
-              <Button
-                size="lg"
-                className="w-full"
-                onClick={() => window.location.assign('/meditation')}
-              >
-                Begin Meditation
-              </Button>
-            </Card>
+            <MeditationStatsCard stats={meditationStats} />
           </motion.section>
 
           <motion.section
@@ -502,7 +723,11 @@ const modules = [
           </motion.section>
 
           {/* New Editable Tasks Card */}
-          <EditableTasksCard />
+          <EditableTasksCard
+            generatedTasks={coachTasks}
+            onTaskExecute={executeTask}
+            onTasksChange={handleTasksChange}
+          />
         </section>
       </main>
     </div>

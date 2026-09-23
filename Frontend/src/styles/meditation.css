@@ -1,171 +1,606 @@
-/* Meditation Page Styles - Vanilla CSS using Wellness Theme Tokens */
+/* Mindful Space — immersive meditation workspace */
 
 :root {
-  /* Wellness color palette (HSL only) */
   --wellness-primary: hsl(280, 75%, 60%);
   --wellness-primary-light: hsl(285, 85%, 85%);
   --wellness-primary-dark: hsl(275, 65%, 45%);
-  --wellness-secondary: hsl(320, 50%, 85%);
   --wellness-accent: hsl(285, 70%, 70%);
-
-  /* Background colors */
-  --wellness-bg: hsl(0, 0%, 100%);
-  --wellness-card: hsl(0, 0%, 100%);
-  --wellness-muted: hsl(300, 20%, 95%);
-  --wellness-border: hsl(300, 20%, 90%);
-
-  /* Text colors */
-  --wellness-text: hsl(222, 84%, 5%);
-  --wellness-text-muted: hsl(280, 15%, 45%);
-  --wellness-text-light: hsl(0, 0%, 100%);
-
-  /* Gradients (HSL) */
-  --gradient-wellness: linear-gradient(
-    135deg,
-    hsl(280, 75%, 60%),
-    hsl(285, 70%, 70%),
-    hsl(300, 70%, 96%),
-    hsl(195, 90%, 85%)
-  );
-  --gradient-calm: linear-gradient(180deg, hsl(285, 85%, 95%) 0%, hsl(300, 70%, 98%) 100%);
-  --gradient-sidebar: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsla(0, 0%, 100%, 0.8) 100%);
-
-  /* Shadows */
-  --shadow-wellness: 0 10px 40px -10px hsla(280, 75%, 60%, 0.2);
-  --shadow-glow: 0 0 30px hsla(285, 70%, 70%, 0.35);
-  --shadow-soft: 0 2px 10px hsla(280, 75%, 60%, 0.1);
-
-  /* Transitions */
-  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-fast: all 0.2s ease-out;
+  --wellness-text: hsl(248, 28%, 16%);
+  --wellness-text-muted: hsl(280, 15%, 42%);
+  --shadow-glow: 0 0 40px hsla(285, 70%, 70%, 0.28);
 }
 
-/* Page background */
-.meditation-page {
+.mindful-shell {
   min-height: 100vh;
-  display: grid;
-  align-items: center;
-  justify-items: center;
-  background: var(--gradient-calm);
-  padding: 2rem 1rem;
+  position: relative;
+  overflow: hidden;
+  color: var(--wellness-text);
+  background:
+    radial-gradient(1200px 700px at 10% -10%, rgba(222, 147, 250, 0.35), transparent 55%),
+    radial-gradient(900px 600px at 100% 0%, rgba(150, 227, 249, 0.28), transparent 50%),
+    linear-gradient(180deg, #f6efff 0%, #eef3ff 48%, #f8fbff 100%);
 }
 
-/* Glass card treatment - full but with inner padding so content stays inside */
-.glass-card {
-  background: hsla(0, 0%, 100%, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--wellness-border);
-  border-radius: 1.25rem;
-  box-shadow: var(--shadow-wellness);
+.mindful-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
 
-  /* Full-size but with safe margins */
-  width: 90vw;
-  max-width: 1200px;
-  height: 85vh;
-  max-height: 900px;
+.mindful-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(8px);
+  opacity: 0.55;
+  animation: drift 18s ease-in-out infinite;
+}
 
+.mindful-orb-a {
+  width: 280px;
+  height: 280px;
+  left: 8%;
+  bottom: 10%;
+  background: radial-gradient(circle, rgba(203, 190, 248, 0.7), transparent 70%);
+}
+
+.mindful-orb-b {
+  width: 220px;
+  height: 220px;
+  right: 12%;
+  top: 16%;
+  background: radial-gradient(circle, rgba(150, 227, 249, 0.55), transparent 70%);
+  animation-delay: -6s;
+}
+
+.mindful-wave {
+  position: absolute;
+  inset: auto 0 0;
+  height: 180px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.28));
+}
+
+.mindful-particles span {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  left: calc(8% + 5% * var(--i, 1));
+  animation: float-up 12s linear infinite;
+}
+
+.mindful-particles span:nth-child(odd) { left: 18%; }
+.mindful-particles span:nth-child(2) { left: 32%; }
+.mindful-particles span:nth-child(3) { left: 48%; }
+.mindful-particles span:nth-child(4) { left: 63%; }
+.mindful-particles span:nth-child(5) { left: 78%; }
+.mindful-particles span:nth-child(6) { left: 90%; }
+
+.mindful-sparkle {
+  position: absolute;
+  right: 8%;
+  bottom: 18%;
+  color: rgba(126, 90, 180, 0.45);
+}
+
+.mindful-nav {
+  position: relative;
+  z-index: 3;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 2rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(90, 70, 140, 0.08);
 }
 
-.meditation-title {
-  font-size: 1.75rem;
+.mindful-brand {
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
   font-weight: 700;
-  color: var(--wellness-text);
-  margin: 0;
+  color: #5b3d8f;
 }
 
-.timer {
-  font-size: 4rem;
-  line-height: 1;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  color: var(--wellness-text);
+.mindful-brand span {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--wellness-text-muted);
 }
 
-/* Breathing animation */
-.breath-container {
+.mindful-nav-title {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.mindful-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mindful-chip,
+.mindful-pill,
+.mindful-ghost,
+.mindful-icon-btn,
+.mindful-cta {
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.55);
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.mindful-chip.live {
+  color: #4b8a6a;
+}
+
+.mindful-icon-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  justify-content: center;
+}
+
+.mindful-cta {
+  background: #17141f;
+  color: white;
+  border-color: #17141f;
+  justify-content: center;
+  min-height: 44px;
+  width: 100%;
+}
+
+.mindful-ghost {
+  background: transparent;
+}
+
+.mindful-pill.active {
+  background: #17141f;
+  color: white;
+}
+
+.mindful-workspace {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.7fr);
+  gap: 1.5rem;
+  padding: 0 1.5rem 2rem;
+  min-height: calc(100vh - 96px);
+}
+
+.mindful-stage {
   position: relative;
   display: grid;
   place-items: center;
-  width: min(90vw, 600px);
-  height: min(90vw, 600px);
-  margin: 0 auto;
-  overflow: hidden; /* Ensures nothing spills */
+  padding: 4.8rem 0 1rem;
 }
 
-.breath-ring {
+.mindful-timer-hud {
   position: absolute;
-  height: auto;
-  width: auto;
-  inset: 0;
-  border-radius: 9999px;
-  border: 3px solid hsl(285, 85%, 85%);
-  box-shadow: inset 0 0 0 2px hsla(285, 70%, 70%, 0.25),
-    0 0 0 0 hsla(285, 70%, 70%, 0.1);
-  background: radial-gradient(circle at 50% 50%, hsla(285, 85%, 92%, 0.9), hsla(285, 85%, 96%, 0.4));
-  animation: breathe-scale 12s ease-in-out infinite;
-  animation-play-state: paused; /* only move when playing */
+  top: 0.5rem;
+  z-index: 4;
+  text-align: center;
 }
 
-.breath-container.is-playing .breath-ring {
-  animation-play-state: running;
+.mindful-timer-value {
+  font-size: clamp(2.4rem, 6vw, 4.2rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
-/* Text inside breathing area */
-.breath-text {
-  position: relative;
-  z-index: 2; /* Ensures it's always on top */
-  font-weight: 600;
+.mindful-timer-sub {
   color: var(--wellness-text-muted);
-  transition: var(--transition-fast);
-  background: hsla(0, 0%, 100%, 0.7); /* Slight background to improve contrast */
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.5rem;
+  font-weight: 600;
 }
 
-.breath-container.is-playing .breath-text {
-  color: var(--wellness-primary-dark);
+.camera-frame {
+  position: relative;
+  width: min(100%, 920px);
+  aspect-ratio: 16 / 10;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: var(--shadow-glow), 0 20px 50px rgba(50, 40, 80, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: #1b1528;
 }
 
-@keyframes breathe-scale {
-  0% {
-    transform: scale(0.85);
-    box-shadow: inset 0 0 0 2px hsla(285, 70%, 70%, 0.25), 0 0 0 0 hsla(285, 70%, 70%, 0.08);
-  }
-  50% {
-    transform: scale(1.06);
-    box-shadow: inset 0 0 0 2px hsla(285, 70%, 70%, 0.25), 0 0 0 24px hsla(285, 70%, 70%, 0.06);
-  }
-  100% {
-    transform: scale(0.85);
-    box-shadow: inset 0 0 0 2px hsla(285, 70%, 70%, 0.25), 0 0 0 0 hsla(285, 70%, 70%, 0.08);
-  }
+.camera-video,
+.camera-fallback,
+.pose-overlay,
+.camera-vignette {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
-/* Controls */
-.controls {
+.camera-video {
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.pose-overlay {
+  transform: scaleX(-1);
+  pointer-events: none;
+}
+
+.camera-fallback {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(180, 150, 230, 0.28), transparent 45%),
+    linear-gradient(180deg, #2a2238, #15101f);
+}
+
+.camera-vignette {
+  background: linear-gradient(180deg, rgba(20, 14, 30, 0.15), rgba(20, 14, 30, 0.38));
+  pointer-events: none;
+}
+
+.camera-status {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 3;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(12, 10, 18, 0.45);
+  color: white;
+  font-size: 0.8rem;
+}
+
+.posture-toast {
+  position: absolute;
+  bottom: 5.5rem;
+  z-index: 4;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+  font-weight: 600;
+}
+
+.breath-orb-wrap {
+  position: absolute;
+  right: 1.2rem;
+  bottom: 1.2rem;
+  z-index: 4;
+}
+
+.breath-orb-wrap.compact .breath-orb {
+  width: 108px;
+  height: 108px;
+}
+
+.breath-orb {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
   display: grid;
-  gap: 1rem; /* more breathing room */
-  margin-top: 0.5rem;
+  place-items: center;
+  color: #4d3a78;
+  background: radial-gradient(circle at 40% 35%, rgba(255, 255, 255, 0.95), rgba(214, 196, 255, 0.85) 55%, rgba(150, 227, 249, 0.55));
+  box-shadow: 0 0 0 10px rgba(214, 196, 255, 0.18);
 }
 
-.preset-row,
-.action-row {
+.breath-orb strong {
+  font-size: 1.4rem;
+}
+
+.breath-orb-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mindful-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: 0;
+}
+
+.mindful-side-aura {
+  min-height: 180px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem; /* more spacing between buttons */
+  place-items: center;
+  margin-top: auto;
+  padding: 1rem 0 0.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.55);
 }
 
-/* Responsive tweaks */
-@media (min-width: 640px) {
-  .timer {
-    font-size: 4.5rem;
+.mindful-side-aura .breath-orb-wrap {
+  position: relative;
+  right: auto;
+  bottom: auto;
+}
+
+.mindful-side-aura .breath-orb-wrap.compact .breath-orb {
+  width: 132px;
+  height: 132px;
+}
+
+.mindful-live-card,
+.mindful-setup-panel,
+.mindful-calibrate,
+.posture-card,
+.mindful-warn,
+.mindful-settings {
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  border-radius: 22px;
+  padding: 1rem;
+  box-shadow: 0 12px 30px rgba(70, 50, 110, 0.08);
+}
+
+.mindful-live-card strong {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #3d8a68;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.mindful-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: var(--wellness-text-muted);
+  font-weight: 700;
+}
+
+.mindful-pills,
+.mindful-inline-actions,
+.session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mindful-pill input {
+  width: 48px;
+  border: 0;
+  background: transparent;
+  margin-left: 0.35rem;
+}
+
+.mindful-checks {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.8rem 0;
+}
+
+.mindful-checks span {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  min-height: 1.5rem;
+  opacity: 0.45;
+}
+
+.mindful-checks span svg {
+  flex: 0 0 auto;
+}
+
+.mindful-status-copy {
+  margin: 0.65rem 0 0.9rem;
+  line-height: 1.45;
+}
+
+.mindful-checks span.ok {
+  opacity: 1;
+  color: #3d8a68;
+}
+
+.posture-card-kicker {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.posture-card-score {
+  font-size: 2.4rem;
+  font-weight: 800;
+}
+
+.posture-card-score span {
+  font-size: 1rem;
+  color: var(--wellness-text-muted);
+}
+
+.posture-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.6rem 0 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.posture-card li {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.posture-card.calm {
+  box-shadow: 0 0 0 1px rgba(120, 180, 150, 0.18), 0 12px 30px rgba(70, 50, 110, 0.08);
+}
+
+.posture-card.warn {
+  box-shadow: 0 0 0 1px rgba(210, 140, 140, 0.25), 0 12px 30px rgba(70, 50, 110, 0.08);
+}
+
+.mindful-settings {
+  position: absolute;
+  right: 1.5rem;
+  top: 5.2rem;
+  z-index: 5;
+  display: grid;
+  gap: 0.6rem;
+  width: 220px;
+}
+
+.mindful-settings input[type="number"] {
+  width: 64px;
+  margin-left: 0.5rem;
+}
+
+.mindful-toggle {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.mindful-fineprint,
+.mindful-demo-tag,
+.mindful-status-copy {
+  color: var(--wellness-text-muted);
+  font-size: 0.85rem;
+}
+
+.mindful-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(24, 18, 36, 0.35);
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.mindful-modal,
+.mindful-summary {
+  width: min(540px, 100%);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(18px);
+  border-radius: 24px;
+  padding: 1.4rem;
+  box-shadow: 0 24px 60px rgba(30, 20, 50, 0.2);
+}
+
+.mindful-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mindful-privacy-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.mindful-privacy-list li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.summary-time {
+  font-size: 2.6rem;
+  font-weight: 800;
+}
+
+.summary-block {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(120, 100, 160, 0.15);
+}
+
+.summary-block strong {
+  display: block;
+  font-size: 1.6rem;
+}
+
+.summary-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: #ece6f8;
+  overflow: hidden;
+}
+
+.summary-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #cbbef8, #96e3f9);
+}
+
+.summary-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+}
+
+.summary-badges em {
+  font-style: normal;
+  font-size: 0.78rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #efe8ff;
+}
+
+.immersive-wrap {
+  padding: 0.2rem 0 0.8rem;
+}
+
+@keyframes drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-18px); }
+}
+
+@keyframes float-up {
+  from { transform: translateY(80vh); opacity: 0; }
+  20% { opacity: 0.6; }
+  to { transform: translateY(-10vh); opacity: 0; }
+}
+
+@media (max-width: 980px) {
+  .mindful-workspace {
+    grid-template-columns: 1fr;
   }
-  .breath-container {
-    width: 300px;
-    height: 300px;
+  .mindful-nav-title {
+    display: none;
+  }
+  .camera-frame {
+    aspect-ratio: 4 / 5;
+    width: 100%;
+  }
+  .mindful-stage {
+    padding-top: 4.2rem;
+  }
+  .mindful-side-aura {
+    min-height: 150px;
+  }
+  .session-actions {
+    position: sticky;
+    bottom: 0.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .mindful-timer-hud {
+    top: 0.2rem;
+  }
+  .breath-orb-wrap {
+    right: 0.6rem;
+    bottom: 0.6rem;
   }
 }

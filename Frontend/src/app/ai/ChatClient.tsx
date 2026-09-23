@@ -4,18 +4,9 @@ import { format } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Send, Bot, User, Plus, Menu, LogOut } from 'lucide-react';
+import { Mic, MicOff, Send, Bot, User, Plus, Menu, LogOut, Volume2, VolumeX } from 'lucide-react';
 import '../../styles/ai.css';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// Load API key from environment
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || '');
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
-interface SpeechRecognitionResult {
-  transcript: string;
-  confidence: number;
-}
+import { trackEvent } from '@/lib/activityTracker';
 
 const ChatClient = () => {
   const searchParams = useSearchParams();
@@ -36,9 +27,19 @@ const ChatClient = () => {
   const [listening, setListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeechSupported, setIsSpeechSupported] = useState(true); // New state for speech support
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const [autoReadReplies, setAutoReadReplies] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  useEffect(() => {
+    trackEvent('page_visit', { page: 'ai' });
+  }, []);
+  useEffect(() => {
+    trackEvent('page_visit', { page: 'ai' });
+  }, []);
 
   // Scroll to bottom on new message
   useEffect(() => {
@@ -47,10 +48,45 @@ const ChatClient = () => {
 
   const hasHandledQuery = useRef(false);
 
+  const speakReply = async (text: string) => {
+    try {
+      setIsSpeaking(true);
+      setSpeechError(null);
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || 'Failed to generate speech');
+      }
+
+      const audioUrl = URL.createObjectURL(await response.blob());
+      const audio = new Audio(audioUrl);
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        setIsSpeaking(false);
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(audioUrl);
+        setIsSpeaking(false);
+      };
+      await audio.play();
+    } catch (error) {
+      console.error('Error playing ElevenLabs speech:', error);
+      setSpeechError('Speech could not play. Check your ElevenLabs quota, then use the speaker button to retry.');
+      setIsSpeaking(false);
+    }
+  };
+
   useEffect(() => {
     if (hasHandledQuery.current) return;
 
-    const promptFromQuery = searchParams.get('q');
+    const promptFromQuery = searchParams?.get('q');
     if (promptFromQuery) {
       setInput(promptFromQuery);
       handleSend(promptFromQuery);
@@ -121,12 +157,26 @@ If a user asks something unrelated to health or wellness, politely
 redirect them back to wellness topics.
 Keep your responses kind, warm, and encouraging.`;
 
-      const result = await model.generateContent([
-        { text: systemPrompt },
-        { text: message.trim() },
-      ]);
+      const response = await fetch('/api/genai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          promptType: 'chat',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message.trim() },
+          ],
+        }),
+      });
 
-      const botReply = result.response.text();
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || 'Failed to generate AI chat response');
+      }
+
+      const botReply = data.text || 'Sorry, I could not generate a reply right now.';
 
       const reply = {
         role: 'bot' as const,
@@ -135,6 +185,9 @@ Keep your responses kind, warm, and encouraging.`;
       };
 
       setMessages((prev) => [...prev, reply]);
+      if (autoReadReplies) {
+        void speakReply(botReply);
+      }
     } catch (error) {
       console.error('Error calling Gemini API:', error);
       setMessages((prev) => [
@@ -200,6 +253,21 @@ Keep your responses kind, warm, and encouraging.`;
 
           {sidebarOpen && (
             <>
+              <label className="speech-toggle">
+                <span className="speech-toggle-label">
+                  <Volume2 className="btn-icon-small" />
+                  Auto-read replies
+                </span>
+                <input
+                  type="checkbox"
+                  checked={autoReadReplies}
+                  onChange={(event) => setAutoReadReplies(event.target.checked)}
+                  aria-label="Automatically read chatbot replies aloud"
+                />
+                <span className="speech-toggle-track" aria-hidden="true">
+                  <span className="speech-toggle-thumb" />
+                </span>
+              </label>
               <div className="recent-chats">
                 <h3 className="section-title">Recent Chats</h3>
                 <div className="chat-list"></div>
@@ -244,6 +312,17 @@ Keep your responses kind, warm, and encouraging.`;
                 <div className="message-bubble">
                   <p className="message-text">{msg.text}</p>
                   <p className="message-time">{format(msg.timestamp, 'hh:mm a')}</p>
+                  {msg.role === 'bot' && (
+                    <Button
+                      variant="outline"
+                      onClick={() => void speakReply(msg.text)}
+                      disabled={isSpeaking}
+                      title="Read this response aloud"
+                    >
+                      <Volume2 className="btn-icon-small" />
+                      Read aloud
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -296,11 +375,26 @@ Keep your responses kind, warm, and encouraging.`;
                 >
                   {listening ? <MicOff className="btn-icon-small" /> : <Mic className="btn-icon-small" />}
                 </Button>
-                <Button className="send-btn" onClick={() => handleSend(input)} disabled={!input.trim() || isLoading}>
+                <Button
+                  className="send-btn"
+                  onClick={() => handleSend(input)}
+                  disabled={!input.trim() || isLoading}
+                  title="Send message"
+                >
                   <Send className="btn-icon-small" />
                 </Button>
               </div>
             </div>
+            {isSpeaking && (
+              <p className="speech-status" role="status">
+                <Volume2 className="btn-icon-small" /> Reading response aloud...
+              </p>
+            )}
+            {speechError && (
+              <p className="speech-status" role="alert">
+                <VolumeX className="btn-icon-small" /> {speechError}
+              </p>
+            )}
             <p className="disclaimer">
               This AI assistant provides wellness support but is not a replacement for professional mental health care.
             </p>

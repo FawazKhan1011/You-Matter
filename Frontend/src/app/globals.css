@@ -3,6 +3,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Hide Clerk's development/keyless prompt */
+.cl-internal-maw46 {
+  display: none !important;
+}
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

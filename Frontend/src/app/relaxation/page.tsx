@@ -766,7 +766,7 @@ export default function RelaxationPage() {
         <div>
           <h2>A small reminder</h2>
           <p>
-            You don't have to make this moment productive.
+            You don&apos;t have to make this moment productive.
             Sometimes taking a few quiet minutes for yourself
             is enough.
           </p>

@@ -443,7 +443,7 @@ const exitToDashboard = () => {
         <div>
           {" "}
           <span className="eyebrow">WHEN YOU NEED MORE SUPPORT</span>{" "}
-          <h2>You don't have to handle everything alone.</h2>{" "}
+          <h2>You don&apos;t have to handle everything alone.</h2>{" "}
           <p>
             {" "}
             If difficult feelings or symptoms persist, become severe, or start

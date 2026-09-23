@@ -549,7 +549,7 @@ export default function ProfilePage() {
             <ul>
               <li>
                 <Check size={15} />
-                You don't need to complete every field.
+                You don&apos;t need to complete every field.
               </li>
 
               <li>

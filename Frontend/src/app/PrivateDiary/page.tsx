@@ -518,8 +518,8 @@ Talk about what happened, how you felt, something you're grateful for, something
           {!reflection && !loading && (
             <div className="reflection-empty">
               <p>
-                When you're ready, let AI gently reflect on what
-                you've written.
+                When you&apos;re ready, let AI gently reflect on what
+                you&apos;ve written.
               </p>
               <span>
                 It will look for themes, emotions and small moments

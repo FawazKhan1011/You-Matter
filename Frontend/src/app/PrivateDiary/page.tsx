@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import {
   BookOpen,
   ChevronLeft,
@@ -62,7 +62,7 @@ function formatTime(dateString: string) {
   }).format(new Date(dateString));
 }
 
-export default function PrivateDiary() {
+function PrivateDiaryContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -562,5 +562,13 @@ Talk about what happened, how you felt, something you're grateful for, something
         </section>
       </section>
     </main>
+  );
+}
+
+export default function PrivateDiary() {
+  return (
+    <Suspense fallback={<main className="diary-shell" aria-busy="true" />}>
+      <PrivateDiaryContent />
+    </Suspense>
   );
 }
